@@ -9,9 +9,29 @@ export type STAGE = STAGECELL[][]
 
 export const useStage = (player: PLAYER, resetPlayer: () => void) => {
   const [stage, setStage] = useState(createStage())
+  const [rowsCleared, setRowsCleared] = useState(0)
 
   useEffect(() => {
     if (!player.pos) return
+
+    setRowsCleared(0)
+
+    const sweepRows = (newStage: STAGE): STAGE => {
+      return newStage.reduce((acc, row) => {
+        //  If we don't find a 0 it means that the row is full and should be cleared
+        if (row.findIndex(cell => cell[0] === 0) === -1) {
+          setRowsCleared(prev => prev + 1)
+          //  Create an empty row at the beginning of the array to push the tetrominos down, instead of returning the cleared row
+          acc.unshift(
+            new Array(newStage[0].length).fill([0, 'clear']) as STAGECELL[]
+          )
+          return acc
+        }
+
+        acc.push(row)
+        return acc
+      }, [] as STAGE)
+    }
 
     const updateStage = (prevStage: STAGE): STAGE => {
       //  first flush the stage
@@ -37,6 +57,7 @@ export const useStage = (player: PLAYER, resetPlayer: () => void) => {
 
       if (player.collided) {
         resetPlayer()
+        return sweepRows(newStage)
       }
 
       return newStage
@@ -45,5 +66,5 @@ export const useStage = (player: PLAYER, resetPlayer: () => void) => {
     setStage(prev => updateStage(prev))
   }, [player.collided, player.pos?.x, player.pos?.y, player.tetromino])
 
-  return { stage, setStage }
+  return { stage, setStage, rowsCleared }
 }
